@@ -1,4 +1,0 @@
-# Astolfo
-
-**TODO: Add description**
-
