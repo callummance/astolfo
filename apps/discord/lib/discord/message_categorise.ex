@@ -2,7 +2,6 @@ defmodule Discord.MessageCategorise do
   require Logger
 
   alias Moderator.ModeratorServer
-  alias Managers.ManChannel
 
   @default_command_prefix "!"
 
@@ -19,9 +18,9 @@ defmodule Discord.MessageCategorise do
   def process_message(msg) do
     if should_check?(msg) do
       case ModeratorServer.check_message(msg) do
-        {:ok} -> 
+        {:ok} ->
           if is_command?(msg) do
-            ManChannel.process_message(msg)
+            Managers.handle_message(msg)
           end
         {:rejected, reason} ->
           Logger.info("Moderator rejected message #{msg.content} due to the following reason: #{reason}.")

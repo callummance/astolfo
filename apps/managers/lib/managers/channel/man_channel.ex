@@ -1,4 +1,4 @@
-defmodule Managers.ManChannel do
+defmodule Managers.Channel.ManChannel do
   use GenServer
 
   require Logger
@@ -12,8 +12,8 @@ defmodule Managers.ManChannel do
     GenServer.start_link(__MODULE__, [cid], name: via_tuple(cid))
   end
 
-  def process_message(message) do
-    GenServer.cast(via_tuple(message.channel_id), {:process_message, message})
+  def process_message(id, message) do
+    GenServer.cast(via_tuple(id), {:process_message, message})
   end
 
   defp via_tuple(channel_id) do

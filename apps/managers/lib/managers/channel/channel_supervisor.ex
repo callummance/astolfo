@@ -15,6 +15,12 @@ defmodule Managers.Channel.Supervisor do
     Supervisor.start_link(__MODULE__, [], name: __MODULE__)
   end
 
+  def handle_message(message) do
+    channel_id = message.channel_id()
+    {:ok, id} = find_or_create(channel_id)
+    Managers.Channel.ManChannel.process_message(id, message)
+  end
+
   @doc """
   Locates the thread for a channel manager worker if it exists, or spawns a new
   one and inserts it into the registry if it does not
