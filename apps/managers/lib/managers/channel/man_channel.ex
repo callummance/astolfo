@@ -60,22 +60,23 @@ defmodule Managers.Channel.ManChannel do
         Logger.info("Fetched channel #{chan["name"]} (#{chan["id"]}) for guild id #{chan["guild_id"]}")
         channel_obj = case chan["type"] do
           0 -> #Guild Text
-            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 0}
             #Try to fetch server data too
             get_server(chan["guild_id"])
+            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 0}
           1 -> #DM
             %Db.Channel{channel_id: chan["id"], channel_type: 1}
           2 -> #Guild Voice
-            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 2}
             #Try to fetch server data too
             get_server(chan["guild_id"])
+            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 2}
           3 -> #Group DM
             %Db.Channel{channel_id: chan["id"], channel_type: 3}
           4 -> #Guild Category
-            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 4}
             #Try to fetch server data too
             get_server(chan["guild_id"])
+            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 4}
         end
+        Logger.info("Now writing channel data for channel #{channel_obj.channel_id} to database.")
         Db.Channel.write_channel(channel_obj)
         channel_obj
     end

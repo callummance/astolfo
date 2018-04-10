@@ -23,6 +23,7 @@ one and inserts it into the registry if it does not
     if server_manager_exists?(server_id) do
       {:ok, server_id}
     else
+      Logger.info("Starting thread for server #{server_id}")
       server_id |> create_server_manager
     end
   end
