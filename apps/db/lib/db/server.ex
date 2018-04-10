@@ -5,14 +5,17 @@ defmodule Db.Server do
   alias Db.Channel
   alias Db.Role
 
+  @doc """
+  Retrieves server details for a given server id from the database if they
+  are present
+  """
   def get_server_by_id(sid) do
-    {:atomic, [{Server, sid, administrator_role, member_role, bot_channel, owner_id}]} = :mnesia.transaction(
-      fn ->
-        :mnesia.read({Server, sid})
-      end
-    )
-
-    %Db.Server{server_id: sid, administrator_role: administrator_role, member_role: member_role, bot_channel: bot_channel, owner_id: owner_id}
+    case :mnesia.transaction(fn -> :mnesia.read({Server, sid}) end) do
+      {:atomic, [{Server, sid, administrator_role, member_role, bot_channel, owner_id}]} ->
+        {:exists, %Db.Server{server_id: sid, administrator_role: administrator_role, member_role: member_role, bot_channel: bot_channel, owner_id: owner_id}}
+      {:atomic, _} ->
+        {:none}
+    end
   end
 
   def write_server(server) do
