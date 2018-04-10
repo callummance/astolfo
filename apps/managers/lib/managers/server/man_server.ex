@@ -74,8 +74,8 @@ defmodule Managers.Server.ManServer do
       {:error, err} ->
         Logger.warn(err)
       {:ok, server} ->
-        Logger.info("Fetched server #{server["name"]}")
-        server_obj = %Db.Server{server_id: server["id"], owner_id: server["owner_id"]}
+        Logger.info("Fetched server '#{server.name}'")
+        server_obj = %Db.Server{server_id: server.id, owner_id: server.owner_id}
         Db.Server.write_server(server_obj)
         server_obj
     end
