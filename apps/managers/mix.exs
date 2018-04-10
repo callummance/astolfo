@@ -25,8 +25,6 @@ defmodule Managers.Mixfile do
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
-    [
-      {:gproc, "0.3.1"}
-    ]
+    []
   end
 end
