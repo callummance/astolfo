@@ -1,18 +1,8 @@
 defmodule Managers do
-  @moduledoc """
-  Documentation for Managers.
-  """
 
-  @doc """
-  Hello world.
+  require Logger
 
-  ## Examples
-
-      iex> Managers.hello
-      :world
-
-  """
-  def hello do
-    :world
+  def handle_message(msg) do
+    Managers.Channel.Supervisor.handle_message(msg)
   end
 end

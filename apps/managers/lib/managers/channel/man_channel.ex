@@ -1,27 +1,23 @@
-defmodule Managers.ManChannel do
+defmodule Managers.Channel.ManChannel do
   use GenServer
 
   require Logger
 
-  alias Managers.ManServer
+  alias Managers.Server.Supervisor
+  @registry_name :channel_manager_registry
+  @process_lifetime_ms 86_400_000 #24 hours
 
   #API
   def start_link(cid) do
     GenServer.start_link(__MODULE__, [cid], name: via_tuple(cid))
   end
 
-  def process_message(message) do
-    #pid = check_channel(message)
-    Supervisor.start_child(:manager_supervisor, [message.channel_id])
-    process_channel_message(message)
-  end
-
-  def process_channel_message(message) do
-    GenServer.cast(via_tuple(message.channel_id), {:process_message, message})
+  def process_message(id, message) do
+    GenServer.cast(via_tuple(id), {:process_message, message})
   end
 
   defp via_tuple(channel_id) do
-    {:via, Registry, {:channel_manager_registry, channel_id}}
+    {:via, Registry, {@registry_name, channel_id}}
   end
 
 
@@ -64,22 +60,23 @@ defmodule Managers.ManChannel do
         Logger.info("Fetched channel #{chan["name"]} (#{chan["id"]}) for guild id #{chan["guild_id"]}")
         channel_obj = case chan["type"] do
           0 -> #Guild Text
-            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 0}
             #Try to fetch server data too
             get_server(chan["guild_id"])
+            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 0}
           1 -> #DM
             %Db.Channel{channel_id: chan["id"], channel_type: 1}
           2 -> #Guild Voice
-            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 2}
             #Try to fetch server data too
             get_server(chan["guild_id"])
+            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 2}
           3 -> #Group DM
             %Db.Channel{channel_id: chan["id"], channel_type: 3}
           4 -> #Guild Category
-            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 4}
             #Try to fetch server data too
             get_server(chan["guild_id"])
+            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 4}
         end
+        Logger.info("Now writing channel data for channel #{channel_obj.channel_id} to database.")
         Db.Channel.write_channel(channel_obj)
         channel_obj
     end
@@ -97,7 +94,7 @@ defmodule Managers.ManChannel do
   end
 
   defp get_server(sid) do
-    ManServer.get_server(sid)
+    Supervisor.find_or_create(sid)
   end
 
 end

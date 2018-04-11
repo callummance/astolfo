@@ -1,7 +1,18 @@
-defmodule Managers.ManServer do
+defmodule Managers.Server.ManServer do
   use GenServer
 
   require Logger
+
+  @registry_name :server_manager_registry
+  @process_lifetime_ms 86_400_000 #24 hours
+
+  #Struct holding the state of this server manager
+  defstruct server_id: 0,
+            server_name: "",
+            administrator_role: 0,
+            member_role: 0,
+            bot_channel: 0,
+            owner_id: 0
 
   #API
   def start_link(sid) do
@@ -9,32 +20,11 @@ defmodule Managers.ManServer do
   end
 
   def process_message(sid, message) do
-    {:ok, pid} = check_server(sid)
-    process_server_message(pid, message)
-  end
-
-  def process_server_message(pid, message) do
-    GenServer.cast(pid, {:process_message, message})
-  end
-
-  def get_server(sid) do
-    check_server(sid)
-  end
-
-  defp check_server(sid) do
-    gproc_name = {:n, :l, {:server_manager, sid}}
-    case :gproc.where(gproc_name) do
-      :undefined  -> 
-        Logger.info("Starting thread for server #{sid}")
-        pid = Supervisor.start_child(:manager_supervisor, [sid])
-        :gproc.reg(gproc_name, pid)
-        pid
-      pid         -> pid
-    end
+    GenServer.cast(via_tuple(sid), {:process_message, message})
   end
 
   defp via_tuple(server_id) do
-    {:via, Registry, {:server_manager_registry, server_id}}
+    {:via, Registry, {@registry_name, server_id}}
   end
 
 
@@ -84,8 +74,8 @@ defmodule Managers.ManServer do
       {:error, err} ->
         Logger.warn(err)
       {:ok, server} ->
-        Logger.info("Fetched server #{server["name"]}")
-        server_obj = %Db.Server{server_id: server["id"], owner_id: server["owner_id"]}
+        Logger.info("Fetched server '#{server.name}'")
+        server_obj = %Db.Server{server_id: server.id, owner_id: server.owner_id}
         Db.Server.write_server(server_obj)
         server_obj
     end

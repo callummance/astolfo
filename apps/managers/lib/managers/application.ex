@@ -6,6 +6,15 @@ defmodule Managers.Application do
   use Application
 
   def start(_type, _args) do
-    Managers.Supervisor.start_link
+    import Supervisor.Spec, warn: false
+
+    #Start registry and child supervisors
+    children = [
+      {Managers.Server.Server, []},
+      {Managers.Channel.Channel, []}
+    ]
+
+    options = [strategy: :one_for_one]
+    Supervisor.start_link(children, options)
   end
 end
