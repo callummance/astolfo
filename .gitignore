@@ -21,6 +21,7 @@ erl_crash.dump
 
 *.beam
 /config/*.secret.exs
+/config/*
 
 #Mnesia data direcory
 Mnesia*
