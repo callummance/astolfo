@@ -11,7 +11,8 @@ defmodule Managers.Application do
     #Start registry and child supervisors
     children = [
       {Managers.Server.Server, []},
-      {Managers.Channel.Channel, []}
+      {Managers.Channel.Channel, []},
+      {Managers.Thread.ConversationThread, []}
     ]
 
     options = [strategy: :one_for_one]
