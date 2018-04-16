@@ -30,10 +30,21 @@ defmodule Managers.Thread.ThreadManager do
 
   #SERVER
   def init([{sid, cid, uid}]) do
-    GenServer.cast(self(), :get_server_details)
+    Logger.info("Staring thread manager for channel #{cid} on server #{sid} with user #{uid}")
     {:ok, %__MODULE__{:server_id => sid,
                       :channel_id => cid,
                       :user_id => uid,
                       :message_callback => &Interpret.start_thread/2}}
+  end
+
+  def handle_cast({:process_message, message}, state) do
+    case state.message_callback.(message, state) do
+      {:stop} ->
+        {:stop, :succ, state}
+      {:continue, new_callback} ->
+        {:noreply, %__MODULE__{state | message_callback: new_callback}}
+      {:repeat} ->
+        {:noreply, state}
+    end
   end
 end

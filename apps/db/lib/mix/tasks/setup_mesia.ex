@@ -22,8 +22,10 @@ defmodule Mix.Tasks.SetupMnesia do
                            disc_copies: nodes])
 
     :mnesia.create_table(Role,
-                          [attributes: [:role_id, :server_id, :auth_requirements, :implies_roles],
-                           disc_copies: nodes])
+                          [attributes: [:role_id, :server_id, :auth_methods, :required_reg_info, :required_user_info],
+                           type: :bag,
+                           disc_copies: nodes,
+                           index: [:role_id, :server_id]])
 
     :mnesia.create_table(Channel,
                           [attributes: [:channel_id, :server_id, :required_role, :channel_type],

@@ -4,6 +4,7 @@ defmodule Db.Channel do
 
   alias Db.Server
   alias Db.Role
+  require Logger
 
   def get_channel_by_id(cid) do
     {:atomic, channel_data} = :mnesia.transaction(
@@ -12,6 +13,7 @@ defmodule Db.Channel do
       end
     )
 
+    Logger.debug("Got channel data from local DB: #{inspect(channel_data)}")
     case channel_data do
       [] ->
         {:none}
@@ -31,12 +33,12 @@ defmodule Db.Channel do
   def get_server(channel) do
     sid = channel.server_id
     res = :mnesia.transaction(
-      fn -> 
+      fn ->
         :mnesia.index_read(Server, sid, :server_id)
       end
     )
     case res do
-      {:atomic, [{Server, sid, administrator_role, member_role, bot_channel}]} -> 
+      {:atomic, [{Server, sid, administrator_role, member_role, bot_channel}]} ->
         {:ok, %Server{server_id: sid, administrator_role: administrator_role, member_role: member_role, bot_channel: bot_channel}}
       {:aborted, details} ->
         {:none, details}

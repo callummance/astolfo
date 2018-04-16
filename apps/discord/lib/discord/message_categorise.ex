@@ -19,9 +19,7 @@ defmodule Discord.MessageCategorise do
     if should_check?(msg) do
       case ModeratorServer.check_message(msg) do
         {:ok} ->
-          if is_command?(msg) do
-            Managers.handle_message(msg)
-          end
+          Managers.handle_message(msg)
         {:rejected, reason} ->
           Logger.info("Moderator rejected message #{msg.content} due to the following reason: #{reason}.")
       end

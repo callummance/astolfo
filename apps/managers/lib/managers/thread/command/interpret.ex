@@ -3,7 +3,9 @@ defmodule Managers.Thread.Command.Interpret do
   Module containing functions for interpreting text commands submitted in
   discord messages.
   """
-  require DiscordInterface.Server
+  alias DiscordInterface.Server
+  alias DiscordInterface.Message
+  alias Managers.Thread.Command.AddManaged
   require Logger
 
   @command_prefix "!"
@@ -16,6 +18,7 @@ defmodule Managers.Thread.Command.Interpret do
   def start_thread(message, conversation_thread) do
     command = select_command(message.content)
     Logger.info("Interpreting message #{message.content} as #{command}")
+    do_command(command, message, conversation_thread)
   end
 
   @doc """
@@ -33,6 +36,8 @@ defmodule Managers.Thread.Command.Interpret do
       case command do
         #Admin commands
         "addmanaged"      -> :add_managed_role
+        "reqreginfo"      -> :add_required_registration_info
+        "requserinfo"     -> :add_required_user_info
         "addregistration" -> :add_registration_method
         "enforcebot"      -> :enforce_bot_registration
         "setadminrole"    -> :set_admin_role
@@ -55,20 +60,45 @@ defmodule Managers.Thread.Command.Interpret do
   it if needed, but only if the user_id given is the server owner or has
   the admin role.
   """
-  def do_command(:add_managed_role, server_id, role_name, user_id) do
-    #Check if the role really exists
-    matching_roles = Enum.filter(DiscordInterface.Server.get_server_roles(server_id), fn(r) ->
-          r.name == role_name
-      ||  "##{r.name}" == role_name
-    end)
+  def do_command(:add_managed_role, message, conversation_thread) do
+    server_id = conversation_thread.server_id
+    user_id = conversation_thread.user_id
+    chan_id = conversation_thread.channel_id
+    case Enum.fetch(message.content |> String.split(" "), 1) do
+      {:ok, role_name} ->
+        case is_server_admin?(server_id, user_id) do
+          true -> #User is admin or server owner, so continue
+            Logger.info("Add role command issued by #{user_id}, admin check succeeded.")
+            #Check if the role really exists
+            matching_roles = Enum.filter(DiscordInterface.Server.get_server_roles!(server_id), fn(r) ->
+                  r["name"] == role_name
+              ||  "##{r["name"]}" == role_name
+            end)
 
-    case matching_roles do
-      #Matching role does not exist, so confirm with the user if a new one
-      #should be created.
-      [] -> []
-      [r] -> r #Role exists \o/
-      _   -> raise "wtf multiple roles matched for '#{role_name}' in server #{server_id}" #WTF mutiple roles matched?
+            case matching_roles do
+              #Matching role does not exist, so confirm with the user if a new one
+              #should be created.
+              [] ->
+                Message.wait_then_send("I couldn't find a role with that name. Would you like me to create one?", chan_id)
+                {:continue, (&AddManaged.confirm_new_role(&1, &2, role_name))}
+              [r] ->
+                Server.set_managed_role(server_id, r)
+                Message.wait_then_send("All done!", chan_id)
+                {:stop}
+              _   ->
+                raise "wtf multiple roles matched for '#{role_name}' in server #{server_id}" #WTF mutiple roles matched?
+                {:stop}
+            end
+          false -> #User is not admin, so terminate
+            Logger.warn("Add role command issued by #{user_id}, admin check failed.")
+            DiscordInterface.Message.wait_then_send("米なさい、that command is only available to admins.", chan_id)
+            {:stop}
+        end
+      :error ->
+        DiscordInterface.Message.wait_then_send("Sorry, I need a name for the target role! Please use the syntax !addmanaged <role_name>.", chan_id)
+        {:stop}
     end
+
   end
 
   @doc """
@@ -83,13 +113,19 @@ defmodule Managers.Thread.Command.Interpret do
   given server or is the server owner
   """
   defp is_server_admin?(server_id, user_id) do
+    Logger.info("Now performing admin check for user #{user_id}")
     case is_server_owner?(server_id, user_id) do
       true  -> true
       false ->
         roles = DiscordInterface.Server.get_member_roles!(server_id, user_id)
-        server_meta = Db.Server.get_server_by_id(server_id)
-        administrator_role = server_meta.administrator_role
-        Enum.member?(roles, administrator_role)
+        case Db.Server.get_server_by_id(server_id) do
+          {exists, server_meta} ->
+            administrator_role = server_meta.administrator_role
+            Enum.member?(roles, administrator_role)
+          {:none} ->
+            Logger.warn("nonexistant server found...?")
+            false
+        end
     end
   end
 end

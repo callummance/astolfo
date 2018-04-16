@@ -25,11 +25,25 @@ defmodule Managers.Channel.ManChannel do
   def init([cid]) do
     Logger.info("Thread started for channel #{cid}")
     GenServer.cast(self(), :get_channel_details)
-    {:ok, %{:cid => cid}}
+    {:ok, %{:cid => cid, :associated_threads => []}}
   end
 
   def handle_cast({:process_message, new_message}, state) do
     state = ensure_initialized(state)
+    cid = state.chan_data.channel_id
+    uid = new_message.author.id
+    case state.chan_data.channel_type do
+      0 -> #Guild text message
+        sid = state.chan_data.server_id
+        {:ok, handler} = Managers.Thread.Supervisor.find_or_create(sid, cid, uid)
+        Managers.Thread.ThreadManager.process_message(handler, new_message)
+      1 -> #DM
+        DiscordInterface.Message.reply(new_message, "Sorry, executing commands via DM is not supported at this time.")
+      3 -> #Group DM
+        DiscordInterface.Message.reply(new_message, "Sorry, executing commands via group DM is not supported at this time.")
+      _ -> #Voice channel?!
+        Logger.warn("Got message from unsupported channel type: #{inspect(new_message)}")
+    end
     Logger.info("Got new message: #{new_message.content} from #{new_message.author.username}")
     {:noreply, state}
   end
@@ -62,21 +76,22 @@ defmodule Managers.Channel.ManChannel do
           0 -> #Guild Text
             #Try to fetch server data too
             get_server(chan["guild_id"])
-            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 0}
+            %Db.Channel{channel_id: chan["id"], server_id: chan["guild_id"], channel_type: 0}
           1 -> #DM
             %Db.Channel{channel_id: chan["id"], channel_type: 1}
           2 -> #Guild Voice
             #Try to fetch server data too
             get_server(chan["guild_id"])
-            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 2}
+            %Db.Channel{channel_id: chan["id"], server_id: chan["guild_id"], channel_type: 2}
           3 -> #Group DM
             %Db.Channel{channel_id: chan["id"], channel_type: 3}
           4 -> #Guild Category
             #Try to fetch server data too
             get_server(chan["guild_id"])
-            %Db.Channel{channel_id: chan["id"], server_id: chan["server_id"], channel_type: 4}
+            %Db.Channel{channel_id: chan["id"], server_id: chan["guild_id"], channel_type: 4}
         end
         Logger.info("Now writing channel data for channel #{channel_obj.channel_id} to database.")
+        Logger.debug("Got channel data: #{inspect(channel_obj)} from fetched object #{inspect(chan)}")
         Db.Channel.write_channel(channel_obj)
         channel_obj
     end
