@@ -23,6 +23,11 @@ defmodule Managers.Server.ManServer do
     GenServer.cast(via_tuple(sid), {:process_message, message})
   end
 
+  def add_managed_role(sid, role) do
+    roleobj = %Db.Role{role_id: role["id"], server_id: sid, auth_methods: [], required_reg_info: [], required_user_info: []}
+    Db.Role.write_role(roleobj)
+  end
+
   defp via_tuple(server_id) do
     {:via, Registry, {@registry_name, server_id}}
   end

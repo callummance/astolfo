@@ -39,10 +39,4 @@ defmodule DiscordInterface.Server do
     newroles = get_server_roles!(sid)
     Enum.filter(newroles, fn(r) -> r["name"] == name end) |> List.first
   end
-
-  def set_managed_role(sid, role) do
-    roleobj = %Db.Role{role_id: role["id"], server_id: sid, auth_methods: [], required_reg_info: [], required_user_info: []}
-    Db.Role.write_role(roleobj)
-  end
-
 end

@@ -18,7 +18,12 @@ defmodule Managers.Thread.Command.Interpret do
   def start_thread(message, conversation_thread) do
     command = select_command(message.content)
     Logger.info("Interpreting message #{message.content} as #{command}")
-    do_command(command, message, conversation_thread)
+    case command do
+      :none ->
+        {:stop}
+      com ->
+        do_command(command, message, conversation_thread)
+    end
   end
 
   @doc """
@@ -82,7 +87,7 @@ defmodule Managers.Thread.Command.Interpret do
                 Message.wait_then_send("I couldn't find a role with that name. Would you like me to create one?", chan_id)
                 {:continue, (&AddManaged.confirm_new_role(&1, &2, role_name))}
               [r] ->
-                Server.set_managed_role(server_id, r)
+                ManServer.add_managed_role(server_id, r)
                 Message.wait_then_send("All done!", chan_id)
                 {:stop}
               _   ->
@@ -98,8 +103,36 @@ defmodule Managers.Thread.Command.Interpret do
         DiscordInterface.Message.wait_then_send("Sorry, I need a name for the target role! Please use the syntax !addmanaged <role_name>.", chan_id)
         {:stop}
     end
-
   end
+
+  @doc """
+  Adds a field to the information that needs to be retrieved from a registration
+  provider. Any information not available will require admin intervention.
+  """
+  def do_command(:add_reqired_registration_info, message, conversation_thread) do
+    server_id = conversation_thread.server_id
+    user_id = conversation_thread.user_id
+    chan_id = conversation_thread.channel_id
+    case is_server_admin?(server_id, user_id) do
+      true ->
+        case Enum.fetch(message.content |> String.split(" "), 1) do
+          {:ok, role_name} ->
+            case Enum.fetch(message.content |> String.split(" "), 2) do
+              {:ok, required_info} -> {:stop}
+                #2 arguments given
+              :error -> {:stop}
+                #1 argument given
+            end
+          :error -> {:stop}
+            #0 arguments given
+        end
+      false ->
+        Logger.warn("Add role command issued by #{user_id}, admin check failed.")
+        DiscordInterface.Message.wait_then_send("米なさい、that command is only available to admins.", chan_id)
+        {:stop}
+    end
+  end
+
 
   @doc """
   Returns true iff the given user is the owner of the given server

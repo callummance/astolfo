@@ -26,8 +26,8 @@ defmodule Discord.Mixfile do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:nostrum, git: "https://github.com/Kraigie/nostrum.git"},
-      {:gun, git: "https://github.com/ninenines/gun.git", ref: "dd1bfe4d6f9fb277781d922aa8bbb5648b3e6756", override: true},
+      {:nostrum, "~> 0.1"}
+      #{:gun, git: "https://github.com/ninenines/gun.git", ref: "dd1bfe4d6f9fb277781d922aa8bbb5648b3e6756", override: true},
     ]
   end
 end

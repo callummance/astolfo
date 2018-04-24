@@ -4,7 +4,7 @@ defmodule Discord.Listener do
   alias Discord.MessageCategorise
 
   require Logger
-  use Nostrum.TaskedConsumer
+  use Nostrum.Consumer
 
   @bot_permissions [:administrator]
 
@@ -27,4 +27,3 @@ defmodule Discord.Listener do
   end
 
 end
-

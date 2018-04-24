@@ -21,7 +21,7 @@ config :nostrum,
   num_shards: :auto
 
 config :logger,
-  level: :info
+  level: :debug
 
 config :discord,
   com_prefix: "!",
